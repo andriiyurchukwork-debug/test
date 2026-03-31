@@ -2,14 +2,13 @@ import { NextResponse } from "next/server";
 import { MODELS, getModelById } from "@/lib/models";
 import { completeWithModel } from "@/lib/complete";
 import type { ChatMessage } from "@/lib/complete";
+import { WELLBEING_ASSISTANT_SYSTEM_PROMPT } from "@/lib/system-prompt";
 
 export type CompareRow = {
   question: string;
   answers: Record<string, string>;
   errors: Record<string, string>;
 };
-
-const SYSTEM = `You are a helpful assistant. Answer in the same language as the question when practical. Be concise but complete.`;
 
 export async function POST(req: Request) {
   let body: { questions?: string[]; modelIds?: string[] };
@@ -44,7 +43,7 @@ export async function POST(req: Request) {
     await Promise.all(
       models.map(async (def) => {
         const messages: ChatMessage[] = [
-          { role: "system", content: SYSTEM },
+          { role: "system", content: WELLBEING_ASSISTANT_SYSTEM_PROMPT },
           { role: "user", content: question },
         ];
         try {
