@@ -6,7 +6,6 @@ import type { EvalMatrix } from "./api/evaluate/route";
 import { AnswersResultsSection } from "@/components/answers-results-section";
 import { HomeHeader } from "@/components/home-header";
 import { QuestionInputPanel } from "@/components/question-input-panel";
-import { SiteFooter } from "@/components/site-footer";
 import type { ViewMode } from "@/components/types";
 
 type ModelInfo = { id: string; label: string };
@@ -160,8 +159,6 @@ export default function Home() {
           evaluatorLabels={evaluatorLabels}
         />
       )}
-
-      <SiteFooter />
     </div>
   );
 }
