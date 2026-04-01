@@ -64,7 +64,7 @@ export function AnswersResultsSection({
             <p className="text-xs text-[var(--muted)]">
               Choose which models appear side by side below (does not run new API calls). Export still includes all loaded answers.
             </p>
-            <ul className="flex flex-wrap gap-x-4 gap-y-2">
+            <ul className="flex flex-wrap gap-x-4 gap-y-2 max-h-[min(40vh,320px)] overflow-y-auto overscroll-contain">
               {resultModelIds.map((id) => (
                 <li key={id}>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">

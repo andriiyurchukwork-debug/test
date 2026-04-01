@@ -25,7 +25,7 @@ export function QuestionInputPanel({
           <fieldset className="space-y-2 min-w-0">
             <legend className="text-sm font-medium text-[var(--foreground)] mb-1">Models that answer</legend>
             <p className="text-xs text-[var(--muted)]">API calls: only checked models generate replies.</p>
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col gap-1.5 max-h-[min(52vh,460px)] overflow-y-auto overscroll-contain pr-1">
               {models.map((m) => (
                 <li key={m.id}>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -33,9 +33,9 @@ export function QuestionInputPanel({
                       type="checkbox"
                       checked={answerModelIds.includes(m.id)}
                       onChange={() => onToggleAnswerModel(m.id)}
-                      className="rounded border-[var(--border)]"
+                      className="rounded border-[var(--border)] shrink-0"
                     />
-                    <span>{m.label}</span>
+                    <span className="leading-snug">{m.label}</span>
                   </label>
                 </li>
               ))}
@@ -46,7 +46,7 @@ export function QuestionInputPanel({
             <p className="text-xs text-[var(--muted)]">
               Cross evaluation: uncheck all here to skip review costs, or pick who scores others.
             </p>
-            <ul className="flex flex-col gap-1.5">
+            <ul className="flex flex-col gap-1.5 max-h-[min(52vh,460px)] overflow-y-auto overscroll-contain pr-1">
               {models.map((m) => (
                 <li key={m.id}>
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -54,9 +54,9 @@ export function QuestionInputPanel({
                       type="checkbox"
                       checked={evaluatorModelIds.includes(m.id)}
                       onChange={() => onToggleEvaluatorModel(m.id)}
-                      className="rounded border-[var(--border)]"
+                      className="rounded border-[var(--border)] shrink-0"
                     />
-                    <span>{m.label}</span>
+                    <span className="leading-snug">{m.label}</span>
                   </label>
                 </li>
               ))}

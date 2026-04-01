@@ -31,7 +31,6 @@ function tryParseEvalJson(text: string): { items?: { questionIndex: number; scor
 export async function POST(req: Request) {
   let body: {
     rows?: CompareRow[];
-    /** @deprecated use answerModelIds */
     modelIds?: string[];
     answerModelIds?: string[];
     evaluatorModelIds?: string[];

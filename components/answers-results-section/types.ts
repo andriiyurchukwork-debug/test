@@ -5,9 +5,7 @@ import type { ViewMode } from "@/components/question-input-panel";
 export type AnswersResultsSectionProps = {
   rows: CompareRow[];
   view: ViewMode;
-  /** Columns shown in the comparison table */
   displayModelIds: string[];
-  /** All model ids present in the result (for column picker + export) */
   resultModelIds: string[];
   comparisonColumnIds: string[];
   onToggleComparisonColumn: (id: string) => void;

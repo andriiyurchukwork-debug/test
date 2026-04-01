@@ -4,6 +4,19 @@ import type { ModelDefinition } from "./models";
 
 export type ChatMessage = { role: "system" | "user" | "assistant"; content: string };
 
+const GROQ_SYSTEM_PROMPT_MAX_CHARS = 10_000;
+const GROQ_MAX_COMPLETION_TOKENS = 2048;
+
+function clampGroqMessages(messages: ChatMessage[]): ChatMessage[] {
+  return messages.map((m) => {
+    if (m.role !== "system" || m.content.length <= GROQ_SYSTEM_PROMPT_MAX_CHARS) return m;
+    return {
+      ...m,
+      content: `${m.content.slice(0, GROQ_SYSTEM_PROMPT_MAX_CHARS)}\n\n[… system prompt truncated for Groq request limits …]`,
+    };
+  });
+}
+
 function getKey(def: ModelDefinition): string | undefined {
   switch (def.provider) {
     case "openai":
@@ -19,19 +32,38 @@ function getKey(def: ModelDefinition): string | undefined {
   }
 }
 
+function openAiPrefersMaxCompletionTokens(model: string): boolean {
+  const m = model.toLowerCase();
+  return m.startsWith("gpt-5") || m.startsWith("o1") || m.startsWith("o3") || /^o\d/.test(m);
+}
+
+function openAiOmitsTemperature(model: string): boolean {
+  const m = model.toLowerCase();
+  return m.startsWith("o1") || m.startsWith("o3") || /^o\d/.test(m);
+}
+
 async function openaiCompatible(
   baseURL: string,
   apiKey: string,
   model: string,
   messages: ChatMessage[],
+  opts?: {
+    useMaxCompletionTokens?: boolean;
+    omitTemperature?: boolean;
+    maxOutputTokens?: number;
+  },
 ): Promise<string> {
   const client = new OpenAI({ apiKey, baseURL });
-  const res = await client.chat.completions.create({
+  const maxOut = opts?.maxOutputTokens ?? 4096;
+  const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
     model,
     messages,
-    max_tokens: 4096,
-    temperature: 0.4,
-  });
+    ...(opts?.omitTemperature ? {} : { temperature: 0.4 }),
+    ...(opts?.useMaxCompletionTokens
+      ? { max_completion_tokens: maxOut }
+      : { max_tokens: maxOut }),
+  };
+  const res = await client.chat.completions.create(params);
   const text = res.choices[0]?.message?.content;
   if (!text) throw new Error("Empty completion");
   return text;
@@ -58,12 +90,22 @@ export async function completeWithModel(def: ModelDefinition, messages: ChatMess
 
   switch (def.provider) {
     case "openai":
-      return openaiCompatible("https://api.openai.com/v1", key, def.apiModel, messages);
+      return openaiCompatible("https://api.openai.com/v1", key, def.apiModel, messages, {
+        useMaxCompletionTokens: openAiPrefersMaxCompletionTokens(def.apiModel),
+        omitTemperature: openAiOmitsTemperature(def.apiModel),
+      });
     case "groq":
-      return openaiCompatible("https://api.groq.com/openai/v1", key, def.apiModel, messages);
+      return openaiCompatible(
+        "https://api.groq.com/openai/v1",
+        key,
+        def.apiModel,
+        clampGroqMessages(messages),
+        { maxOutputTokens: GROQ_MAX_COMPLETION_TOKENS },
+      );
     case "deepinfra":
       return openaiCompatible("https://api.deepinfra.com/v1/openai", key, def.apiModel, messages);
     case "openrouter": {
+      const orPrefers = /^openai\/gpt-5/i.test(def.apiModel) || /^openai\/o\d/i.test(def.apiModel);
       const client = new OpenAI({
         apiKey: key,
         baseURL: "https://openrouter.ai/api/v1",
@@ -72,12 +114,13 @@ export async function completeWithModel(def: ModelDefinition, messages: ChatMess
           "X-Title": process.env.OPENROUTER_SITE_NAME || "AI Shock Tester",
         },
       });
-      const res = await client.chat.completions.create({
+      const params: OpenAI.Chat.ChatCompletionCreateParamsNonStreaming = {
         model: def.apiModel,
         messages,
-        max_tokens: 4096,
         temperature: 0.4,
-      });
+        ...(orPrefers ? { max_completion_tokens: 4096 } : { max_tokens: 4096 }),
+      };
+      const res = await client.chat.completions.create(params);
       const text = res.choices[0]?.message?.content;
       if (!text) throw new Error("Empty OpenRouter completion");
       return text;
