@@ -1,2 +1,2 @@
 export { QuestionInputPanel } from "./QuestionInputPanel";
-export type { QuestionInputPanelProps, ViewMode } from "./types";
+export type { ModelOption, QuestionInputPanelProps, ViewMode } from "./types";

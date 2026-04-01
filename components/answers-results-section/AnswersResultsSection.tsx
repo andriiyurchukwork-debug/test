@@ -10,7 +10,10 @@ import type { AnswersResultsSectionProps } from "./types";
 export function AnswersResultsSection({
   rows,
   view,
-  modelIds,
+  displayModelIds,
+  resultModelIds,
+  comparisonColumnIds,
+  onToggleComparisonColumn,
   labels,
   evalLoading,
   onEvaluate,
@@ -22,11 +25,11 @@ export function AnswersResultsSection({
   const onExportExcel = useCallback(async () => {
     setExporting(true);
     try {
-      await downloadResultsXlsx(rows, modelIds, labels, evalMatrix, evaluatorLabels);
+      await downloadResultsXlsx(rows, resultModelIds, labels, evalMatrix, evaluatorLabels);
     } finally {
       setExporting(false);
     }
-  }, [rows, modelIds, labels, evalMatrix, evaluatorLabels]);
+  }, [rows, resultModelIds, labels, evalMatrix, evaluatorLabels]);
 
   if (!rows.length) return null;
 
@@ -55,10 +58,34 @@ export function AnswersResultsSection({
           </div>
         </div>
 
+        {resultModelIds.length > 0 && (
+          <fieldset className="rounded-lg border border-[var(--border)] bg-[var(--card)]/80 p-4 space-y-2">
+            <legend className="text-sm font-medium text-[var(--foreground)] px-1">Comparison table columns</legend>
+            <p className="text-xs text-[var(--muted)]">
+              Choose which models appear side by side below (does not run new API calls). Export still includes all loaded answers.
+            </p>
+            <ul className="flex flex-wrap gap-x-4 gap-y-2">
+              {resultModelIds.map((id) => (
+                <li key={id}>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={comparisonColumnIds.includes(id)}
+                      onChange={() => onToggleComparisonColumn(id)}
+                      className="rounded border-[var(--border)]"
+                    />
+                    <span>{labels[id] ?? id}</span>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          </fieldset>
+        )}
+
         {view === "matrix" ? (
-          <AnswersMatrixTable rows={rows} modelIds={modelIds} labels={labels} />
+          <AnswersMatrixTable rows={rows} modelIds={displayModelIds} labels={labels} />
         ) : (
-          <AnswersByModelGrid rows={rows} modelIds={modelIds} labels={labels} />
+          <AnswersByModelGrid rows={rows} modelIds={displayModelIds} labels={labels} />
         )}
       </section>
 

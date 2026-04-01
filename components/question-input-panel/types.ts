@@ -1,5 +1,7 @@
 export type ViewMode = "matrix" | "byModel";
 
+export type ModelOption = { id: string; label: string };
+
 export type QuestionInputPanelProps = {
   systemPrompt: string;
   onSystemPromptChange: (value: string) => void;
@@ -12,4 +14,9 @@ export type QuestionInputPanelProps = {
   view: ViewMode;
   onViewChange: (view: ViewMode) => void;
   error: string | null;
+  models: ModelOption[];
+  answerModelIds: string[];
+  onToggleAnswerModel: (id: string) => void;
+  evaluatorModelIds: string[];
+  onToggleEvaluatorModel: (id: string) => void;
 };

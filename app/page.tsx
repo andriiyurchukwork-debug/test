@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CompareRow } from "./api/compare/route";
 import type { EvalMatrix } from "./api/evaluate/route";
 import { AnswersResultsSection } from "@/components/answers-results-section";
@@ -13,6 +13,10 @@ type ModelInfo = { id: string; label: string };
 
 export default function Home() {
   const [models, setModels] = useState<ModelInfo[]>([]);
+  const [answerModelIds, setAnswerModelIds] = useState<string[]>([]);
+  const [evaluatorModelIds, setEvaluatorModelIds] = useState<string[]>([]);
+  const modelsHydrated = useRef(false);
+
   const [systemPrompt, setSystemPrompt] = useState(WELLBEING_ASSISTANT_SYSTEM_PROMPT);
   const [input, setInput] = useState("");
   const [view, setView] = useState<ViewMode>("matrix");
@@ -24,6 +28,7 @@ export default function Home() {
   const [evalMatrix, setEvalMatrix] = useState<EvalMatrix | null>(null);
   const [evaluatorLabels, setEvaluatorLabels] = useState<Record<string, string> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [comparisonColumnIds, setComparisonColumnIds] = useState<string[]>([]);
 
   useEffect(() => {
     fetch("/api/models")
@@ -32,7 +37,51 @@ export default function Home() {
       .catch(() => setModels([]));
   }, []);
 
-  const modelIds = activeModelIds ?? models.map((m) => m.id);
+  useEffect(() => {
+    if (!models.length || modelsHydrated.current) return;
+    const ids = models.map((m) => m.id);
+    setAnswerModelIds(ids);
+    setEvaluatorModelIds(ids);
+    modelsHydrated.current = true;
+  }, [models]);
+
+  const toggleAnswerModel = useCallback((id: string) => {
+    setAnswerModelIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }, []);
+
+  const toggleEvaluatorModel = useCallback((id: string) => {
+    setEvaluatorModelIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }, []);
+
+  const idsOrdered = useMemo(() => {
+    const fromLabels = Object.keys(labels);
+    const mid = activeModelIds ?? answerModelIds;
+    if (fromLabels.length) {
+      const filtered = mid.filter((id) => fromLabels.includes(id));
+      return filtered.length ? filtered : fromLabels;
+    }
+    return mid;
+  }, [labels, activeModelIds, answerModelIds]);
+
+  const toggleComparisonColumn = useCallback(
+    (id: string) => {
+      setComparisonColumnIds((prev) => {
+        const base = idsOrdered;
+        const effective = prev.filter((x) => base.includes(x));
+        const next = effective.includes(id) ? effective.filter((x) => x !== id) : [...effective, id];
+        const filtered = next.filter((x) => base.includes(x));
+        if (filtered.length === 0) return base;
+        return filtered;
+      });
+    },
+    [idsOrdered],
+  );
+
+  const displayModelIds = useMemo(() => {
+    const base = idsOrdered;
+    const picked = comparisonColumnIds.filter((id) => base.includes(id));
+    return picked.length > 0 ? picked : base;
+  }, [idsOrdered, comparisonColumnIds]);
 
   const parseQuestions = useCallback((): string[] => {
     return input
@@ -77,6 +126,11 @@ export default function Home() {
       setError("Maximum 20 questions");
       return;
     }
+    const answerIds = answerModelIds.filter((id) => models.some((m) => m.id === id));
+    if (answerIds.length < 1) {
+      setError("Select at least one model to answer");
+      return;
+    }
     setLoading(true);
     setEvalMatrix(null);
     setEvaluatorLabels(null);
@@ -86,7 +140,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questions,
-          modelIds,
+          modelIds: answerIds,
           systemPrompt: systemPrompt.trim() || undefined,
         }),
       });
@@ -98,6 +152,11 @@ export default function Home() {
       setRows(data.rows);
       setLabels(data.modelLabels ?? {});
       setActiveModelIds(data.modelIds ?? null);
+      setComparisonColumnIds((prev) => {
+        const base = (data.modelIds as string[]) ?? [];
+        const picked = prev.filter((id) => base.includes(id));
+        return picked.length > 0 ? picked : base;
+      });
     } catch {
       setError("Network error");
     } finally {
@@ -107,13 +166,28 @@ export default function Home() {
 
   const runEvaluate = async () => {
     if (!rows?.length) return;
-    setEvalLoading(true);
     setError(null);
+    const answerIds = answerModelIds.filter((id) => models.some((m) => m.id === id));
+    const evalIds = evaluatorModelIds.filter((id) => models.some((m) => m.id === id));
+    if (evalIds.length < 1) {
+      setError("Select at least one model to run cross evaluation");
+      return;
+    }
+    const hasPair = evalIds.some((eid) => answerIds.some((tid) => tid !== eid));
+    if (!hasPair) {
+      setError("Cross evaluation needs an evaluator and at least one other model with answers to score");
+      return;
+    }
+    setEvalLoading(true);
     try {
       const res = await fetch("/api/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows, modelIds }),
+        body: JSON.stringify({
+          rows,
+          answerModelIds: answerIds,
+          evaluatorModelIds: evalIds,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -128,15 +202,6 @@ export default function Home() {
       setEvalLoading(false);
     }
   };
-
-  const idsOrdered = useMemo(() => {
-    const fromLabels = Object.keys(labels);
-    if (fromLabels.length) {
-      const filtered = modelIds.filter((id) => fromLabels.includes(id));
-      return filtered.length ? filtered : fromLabels;
-    }
-    return modelIds;
-  }, [labels, modelIds]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 py-10 space-y-10">
@@ -154,13 +219,21 @@ export default function Home() {
         view={view}
         onViewChange={setView}
         error={error}
+        models={models}
+        answerModelIds={answerModelIds}
+        onToggleAnswerModel={toggleAnswerModel}
+        evaluatorModelIds={evaluatorModelIds}
+        onToggleEvaluatorModel={toggleEvaluatorModel}
       />
 
       {rows && (
         <AnswersResultsSection
           rows={rows}
           view={view}
-          modelIds={idsOrdered}
+          displayModelIds={displayModelIds}
+          resultModelIds={idsOrdered}
+          comparisonColumnIds={comparisonColumnIds}
+          onToggleComparisonColumn={toggleComparisonColumn}
           labels={labels}
           evalLoading={evalLoading}
           onEvaluate={runEvaluate}

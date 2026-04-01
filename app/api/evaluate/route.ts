@@ -29,7 +29,13 @@ function tryParseEvalJson(text: string): { items?: { questionIndex: number; scor
 }
 
 export async function POST(req: Request) {
-  let body: { rows?: CompareRow[]; modelIds?: string[] };
+  let body: {
+    rows?: CompareRow[];
+    /** @deprecated use answerModelIds */
+    modelIds?: string[];
+    answerModelIds?: string[];
+    evaluatorModelIds?: string[];
+  };
   try {
     body = await req.json();
   } catch {
@@ -41,21 +47,30 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No rows to evaluate" }, { status: 400 });
   }
 
-  const selected = body.modelIds?.length
-    ? body.modelIds.map((id) => getModelById(id)).filter(Boolean)
-    : MODELS;
-  const models = selected as typeof MODELS;
-  if (!models.length) {
-    return NextResponse.json({ error: "No valid models" }, { status: 400 });
+  const answerIds = body.answerModelIds?.length ? body.answerModelIds : body.modelIds;
+  const targetModels = (answerIds?.length
+    ? answerIds.map((id) => getModelById(id)).filter(Boolean)
+    : MODELS) as typeof MODELS;
+  if (!targetModels.length) {
+    return NextResponse.json({ error: "No valid answer models" }, { status: 400 });
+  }
+
+  const evaluators = (
+    body.evaluatorModelIds !== undefined
+      ? body.evaluatorModelIds.map((id) => getModelById(id)).filter(Boolean)
+      : targetModels
+  ) as typeof MODELS;
+  if (!evaluators.length) {
+    return NextResponse.json({ error: "No valid evaluator models" }, { status: 400 });
   }
 
   const matrix: EvalMatrix = {};
 
   const tasks: Promise<void>[] = [];
 
-  for (const evaluator of models) {
+  for (const evaluator of evaluators) {
     matrix[evaluator.id] = {};
-    for (const target of models) {
+    for (const target of targetModels) {
       if (target.id === evaluator.id) continue;
 
       const qaBlock = rows
@@ -126,6 +141,6 @@ questionIndex is 1..${rows.length}. score is an integer from 1 to 10.`;
 
   return NextResponse.json({
     matrix,
-    evaluatorLabels: Object.fromEntries(models.map((m) => [m.id, m.label])),
+    evaluatorLabels: Object.fromEntries(evaluators.map((m) => [m.id, m.label])),
   });
 }
