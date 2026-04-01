@@ -1,6 +1,9 @@
 import type { ViewMode } from "./types";
 
 type QuestionInputPanelProps = {
+  systemPrompt: string;
+  onSystemPromptChange: (value: string) => void;
+  onResetSystemPrompt: () => void;
   input: string;
   onInputChange: (value: string) => void;
   onExcelFile: (file: File | null) => void;
@@ -12,6 +15,9 @@ type QuestionInputPanelProps = {
 };
 
 export function QuestionInputPanel({
+  systemPrompt,
+  onSystemPromptChange,
+  onResetSystemPrompt,
   input,
   onInputChange,
   onExcelFile,
@@ -23,6 +29,30 @@ export function QuestionInputPanel({
 }: QuestionInputPanelProps) {
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-6 space-y-4 shadow-lg shadow-black/20">
+      <div className="space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label className="block text-sm font-medium text-[var(--muted)]">System prompt</label>
+          <button
+            type="button"
+            onClick={onResetSystemPrompt}
+            className="text-xs text-[var(--accent)] hover:underline"
+          >
+            Reset to default
+          </button>
+        </div>
+        <p className="text-xs text-[var(--muted)]">
+          This text is sent as the system message to every model on comparison. Clear the field and leave it empty to use the built-in
+          default prompt again.
+        </p>
+        <textarea
+          value={systemPrompt}
+          onChange={(e) => onSystemPromptChange(e.target.value)}
+          rows={6}
+          spellCheck={false}
+          className="w-full rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[var(--accent)]/40 font-[family-name:var(--font-geist-mono)] max-h-[min(40vh,320px)] overflow-y-auto"
+        />
+      </div>
+
       <label className="block text-sm font-medium text-[var(--muted)]">Questions (one per line)</label>
       <textarea
         value={input}

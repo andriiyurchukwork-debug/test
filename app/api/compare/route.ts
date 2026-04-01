@@ -10,12 +10,24 @@ export type CompareRow = {
   errors: Record<string, string>;
 };
 
+const MAX_SYSTEM_PROMPT_CHARS = 120_000;
+
 export async function POST(req: Request) {
-  let body: { questions?: string[]; modelIds?: string[] };
+  let body: { questions?: string[]; modelIds?: string[]; systemPrompt?: string };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const trimmedPrompt = typeof body.systemPrompt === "string" ? body.systemPrompt.trim() : "";
+  const systemContent =
+    trimmedPrompt.length > 0 ? trimmedPrompt : WELLBEING_ASSISTANT_SYSTEM_PROMPT;
+  if (systemContent.length > MAX_SYSTEM_PROMPT_CHARS) {
+    return NextResponse.json(
+      { error: `System prompt must be at most ${MAX_SYSTEM_PROMPT_CHARS} characters` },
+      { status: 400 },
+    );
   }
 
   const raw = body.questions?.map((q) => q.trim()).filter(Boolean) ?? [];
@@ -43,7 +55,7 @@ export async function POST(req: Request) {
     await Promise.all(
       models.map(async (def) => {
         const messages: ChatMessage[] = [
-          { role: "system", content: WELLBEING_ASSISTANT_SYSTEM_PROMPT },
+          { role: "system", content: systemContent },
           { role: "user", content: question },
         ];
         try {

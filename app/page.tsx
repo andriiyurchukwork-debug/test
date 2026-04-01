@@ -7,11 +7,13 @@ import { AnswersResultsSection } from "@/components/answers-results-section";
 import { HomeHeader } from "@/components/home-header";
 import { QuestionInputPanel } from "@/components/question-input-panel";
 import type { ViewMode } from "@/components/types";
+import { WELLBEING_ASSISTANT_SYSTEM_PROMPT } from "@/lib/system-prompt";
 
 type ModelInfo = { id: string; label: string };
 
 export default function Home() {
   const [models, setModels] = useState<ModelInfo[]>([]);
+  const [systemPrompt, setSystemPrompt] = useState(WELLBEING_ASSISTANT_SYSTEM_PROMPT);
   const [input, setInput] = useState("");
   const [view, setView] = useState<ViewMode>("matrix");
   const [loading, setLoading] = useState(false);
@@ -82,7 +84,11 @@ export default function Home() {
       const res = await fetch("/api/compare", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ questions, modelIds }),
+        body: JSON.stringify({
+          questions,
+          modelIds,
+          systemPrompt: systemPrompt.trim() || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -137,6 +143,9 @@ export default function Home() {
       <HomeHeader />
 
       <QuestionInputPanel
+        systemPrompt={systemPrompt}
+        onSystemPromptChange={setSystemPrompt}
+        onResetSystemPrompt={() => setSystemPrompt(WELLBEING_ASSISTANT_SYSTEM_PROMPT)}
         input={input}
         onInputChange={setInput}
         onExcelFile={onExcelFile}
