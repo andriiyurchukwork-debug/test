@@ -1,10 +1,4 @@
-import type { CompareRow } from "@/app/api/compare/route";
-
-type AnswersMatrixTableProps = {
-  rows: CompareRow[];
-  modelIds: string[];
-  labels: Record<string, string>;
-};
+import type { AnswersMatrixTableProps } from "./types";
 
 export function AnswersMatrixTable({ rows, modelIds, labels }: AnswersMatrixTableProps) {
   return (

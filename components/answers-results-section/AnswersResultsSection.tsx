@@ -1,24 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import type { CompareRow } from "@/app/api/compare/route";
-import type { EvalMatrix } from "@/app/api/evaluate/route";
 import { downloadResultsXlsx } from "@/lib/export-results-xlsx";
-import type { ViewMode } from "./types";
-import { AnswersByModelGrid } from "./answers-by-model-grid";
-import { AnswersMatrixTable } from "./answers-matrix-table";
-import { CrossEvaluationSection } from "./cross-evaluation-section";
-
-type AnswersResultsSectionProps = {
-  rows: CompareRow[];
-  view: ViewMode;
-  modelIds: string[];
-  labels: Record<string, string>;
-  evalLoading: boolean;
-  onEvaluate: () => void;
-  evalMatrix: EvalMatrix | null;
-  evaluatorLabels: Record<string, string> | null;
-};
+import { AnswersByModelGrid } from "@/components/answers-by-model-grid";
+import { AnswersMatrixTable } from "@/components/answers-matrix-table";
+import { CrossEvaluationSection } from "@/components/cross-evaluation-section";
+import type { AnswersResultsSectionProps } from "./types";
 
 export function AnswersResultsSection({
   rows,

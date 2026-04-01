@@ -1,9 +1,4 @@
-import type { EvalMatrix } from "@/app/api/evaluate/route";
-
-type CrossEvaluationSectionProps = {
-  matrix: EvalMatrix;
-  evaluatorLabels: Record<string, string>;
-};
+import type { CrossEvaluationSectionProps } from "./types";
 
 export function CrossEvaluationSection({ matrix, evaluatorLabels }: CrossEvaluationSectionProps) {
   return (

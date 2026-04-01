@@ -1,10 +1,4 @@
-import type { CompareRow } from "@/app/api/compare/route";
-
-type AnswersByModelGridProps = {
-  rows: CompareRow[];
-  modelIds: string[];
-  labels: Record<string, string>;
-};
+import type { AnswersByModelGridProps } from "./types";
 
 export function AnswersByModelGrid({ rows, modelIds, labels }: AnswersByModelGridProps) {
   return (

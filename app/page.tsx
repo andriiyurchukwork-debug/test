@@ -6,7 +6,7 @@ import type { EvalMatrix } from "./api/evaluate/route";
 import { AnswersResultsSection } from "@/components/answers-results-section";
 import { HomeHeader } from "@/components/home-header";
 import { QuestionInputPanel } from "@/components/question-input-panel";
-import type { ViewMode } from "@/components/types";
+import type { ViewMode } from "@/components/question-input-panel";
 import { WELLBEING_ASSISTANT_SYSTEM_PROMPT } from "@/lib/system-prompt";
 
 type ModelInfo = { id: string; label: string };
